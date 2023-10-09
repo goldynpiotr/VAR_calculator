@@ -23,19 +23,34 @@ class DataManager():
         return df             
         
     def get_simple_returns(self):
-        self.df["Daily Returns"] = ((self.df["Close"]-self.df["Open"])/self.df["Open"])*100
+        self.df["Daily Returns"] = ((self.df["Close"]-self.df["Open"])/self.df["Open"])
         return self.df["Daily Returns"]
     
     def get_log_returns(self):
         self.df["Log Returns"] = np.log(self.df["Close"] / self.df["Close"].shift(1))  # Calculate log returns
         return self.df["Log Returns"]
+    
+    def get_std(self):
+        standard_dev =  self.df["Log Returns"].std()*100
+        print("Standard deviation: "+str(standard_dev)+"%")
+        return standard_dev
+    
+    def plot_price(self):
+        plt.figure(figsize=(3,3))
+        plt.xlabel("Date")
+        plt.ylabel(self.user_ticker+" price")
+        plt.title(self.user_ticker+" price")
+        plt.plot(self.df["Date"], self.df["Close"])
+        fig = plt.gcf()
+        fig_manager = fig.canvas.manager
+        fig_manager.window.state('zoomed')  
+        plt.subplots_adjust(left=0.1, right=0.7, bottom=0.4)
+        plt.show()
 
+        
 class MonteCarlo():
-    def __init__(self, user_ticker, user_sdate, user_edate, confidence_level, time_horizon):
-         self.user_ticker = user_ticker
-         self.user_sdate = user_sdate
-         self.user_edate = user_edate
-         self.df = DataManager(user_ticker, user_sdate, user_edate).get_log_returns()
+    def __init__(self, df, confidence_level, time_horizon):
+         self.df = df
          self.confidence_level = confidence_level
          self.time_horizon = time_horizon
          self.value_at_risk = None
@@ -64,7 +79,6 @@ class MonteCarlo():
         plt.title(f"Distribution of security's {self.time_horizon}-day returns")
         plt.axvline(-self.value_at_risk, color='r', linestyle='dashed', linewidth=2,label=f'Var at {self.confidence_level}')
         plt.legend()
-        #plt.subplot(2, 1, 2)
         fig = plt.gcf()
         fig_manager = fig.canvas.manager
         fig_manager.window.state('zoomed')  
@@ -74,9 +88,35 @@ class MonteCarlo():
 
 seed = int(time.time())
 np.random.seed(seed)
-simulation1 = MonteCarlo("TSLA","2020-01-01","2023-09-18",0.95, 5)
-print(simulation1.monte_carlo_historical())
-simulation1.plot_histogram()
 
+user_ticker = input("Ticker: ")
+user_sdate = input("Starting Date: ")
+user_edate = input("Ending Date: ")
+df = DataManager(user_ticker,user_sdate,user_edate)
+while True:
+    print(user_ticker+" DATA")
+    print("*************")
+    print("1. Price chart")
+    print("2. VaR histogram")
+    print("3. Close")
+    choice = input("Choose number: ")
+    if choice == "1":
+        df.plot_price()
+    elif choice =="2":
+        print("1- log returns\n2- simple returns")
+        user_returns = input("Select returns type: ")
+        if user_returns == "1":
+            print("log")
+            returns = df.get_log_returns()
+            print(returns)
+        elif user_returns =="2":
+            returns = df.get_simple_returns()
+        else:
+            print("Wrong option")
+        simulation1 = MonteCarlo(returns,0.95, 5)
+        simulation1.monte_carlo_historical()
+        simulation1.plot_histogram()
+    elif choice == "3":
+        break
 
 
